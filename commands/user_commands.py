@@ -10,7 +10,21 @@ from .base import AdminCommandMixin
 
 
 class UserCommandsMixin(AdminCommandMixin):
-    """用户管理命令：kick, ban, unban, invite"""
+    """用户管理命令：kick, ban, unban, invite, members, banlist"""
+
+    async def _require_client_and_room(
+        self, event: AstrMessageEvent, room_id: str = ""
+    ) -> tuple:
+        """统一获取 client 和 target_room_id，失败时返回 (None, None, error_msg)"""
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            return None, None, msg
+        target_room_id = self._resolve_target_room_id(event, room_id)
+        ok, msg = self._validate_room_id(target_room_id)
+        if not ok:
+            return None, None, msg
+        return client, target_room_id, None
 
     async def cmd_kick(
         self,
@@ -28,28 +42,21 @@ class UserCommandsMixin(AdminCommandMixin):
             /admin kick @baduser:example.com 违规发言
             /admin kick @baduser:example.com !roomid:example.com
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         reason_text = str(reason or "").strip()
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if (
-            not target_room_id
-            and not room_id
-            and reason_text.startswith("!")
-            and ":" in reason_text
-        ):
+        if not target_room_id and reason_text.startswith("!") and ":" in reason_text:
             target_room_id = reason_text
             reason_text = ""
 
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
-            return
-
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -62,7 +69,7 @@ class UserCommandsMixin(AdminCommandMixin):
             yield event.plain_result(msg)
         except Exception as e:
             logger.error(f"踢出用户失败：{e}")
-            yield event.plain_result(f"踢出用户失败：{e}")
+            yield event.plain_result(self._format_error("踢出用户失败", str(e)))
 
     async def cmd_ban(
         self,
@@ -80,28 +87,21 @@ class UserCommandsMixin(AdminCommandMixin):
             /admin ban @spammer:example.com 垃圾广告
             /admin ban @spammer:example.com !roomid:example.com
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         reason_text = str(reason or "").strip()
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if (
-            not target_room_id
-            and not room_id
-            and reason_text.startswith("!")
-            and ":" in reason_text
-        ):
+        if not target_room_id and reason_text.startswith("!") and ":" in reason_text:
             target_room_id = reason_text
             reason_text = ""
 
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
-            return
-
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -114,7 +114,7 @@ class UserCommandsMixin(AdminCommandMixin):
             yield event.plain_result(msg)
         except Exception as e:
             logger.error(f"封禁用户失败：{e}")
-            yield event.plain_result(f"封禁用户失败：{e}")
+            yield event.plain_result(self._format_error("封禁用户失败", str(e)))
 
     async def cmd_unban(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """解除封禁
@@ -125,18 +125,16 @@ class UserCommandsMixin(AdminCommandMixin):
             /admin unban @user:example.com
             /admin unban @user:example.com !roomid:example.com
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
-            return
-
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -145,7 +143,7 @@ class UserCommandsMixin(AdminCommandMixin):
             yield event.plain_result(f"已解除 {user_id} 的封禁\n房间：{target_room_id}")
         except Exception as e:
             logger.error(f"解除封禁失败：{e}")
-            yield event.plain_result(f"解除封禁失败：{e}")
+            yield event.plain_result(self._format_error("解除封禁失败", str(e)))
 
     async def cmd_invite(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """邀请用户加入房间
@@ -156,18 +154,16 @@ class UserCommandsMixin(AdminCommandMixin):
             /admin invite @friend:example.com
             /admin invite @friend:example.com !roomid:example.com
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
-            return
-
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -178,4 +174,4 @@ class UserCommandsMixin(AdminCommandMixin):
             )
         except Exception as e:
             logger.error(f"邀请用户失败：{e}")
-            yield event.plain_result(f"邀请用户失败：{e}")
+            yield event.plain_result(self._format_error("邀请用户失败", str(e)))

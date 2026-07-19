@@ -30,7 +30,7 @@ from .tool import (
     "astrbot_plugin_matrix_admin",
     "stevessr",
     "Matrix 管理插件，提供房间管理、设备验证与适配器运维命令",
-    "0.2.0",
+    "0.3.0",
 )
 class Matrix_Admin_Plugin(
     Star,
@@ -329,6 +329,45 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_room_refresh(event, room_id):
             yield result
 
+    @admin_group.command("rooms")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_rooms(self, event: AstrMessageEvent):
+        """列出 Bot 已加入的所有房间"""
+        async for result in self.cmd_rooms(event):
+            yield result
+
+    @admin_group.command("roominfo")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_roominfo(self, event: AstrMessageEvent, room_id: str = ""):
+        """查看房间详细信息"""
+        async for result in self.cmd_room_info(event, room_id):
+            yield result
+
+    @admin_group.command("banlist")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_banlist(self, event: AstrMessageEvent, room_id: str = ""):
+        """查看房间封禁列表"""
+        async for result in self.cmd_banlist(event, room_id):
+            yield result
+
+    @admin_group.command("setroomname")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_setroomname(
+        self, event: AstrMessageEvent, name: GreedyStr, room_id: str = ""
+    ):
+        """设置房间名称"""
+        async for result in self.cmd_setroomname(event, name, room_id):
+            yield result
+
+    @admin_group.command("setroomtopic")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_setroomtopic(
+        self, event: AstrMessageEvent, topic: GreedyStr, room_id: str = ""
+    ):
+        """设置房间主题"""
+        async for result in self.cmd_setroomtopic(event, topic, room_id):
+            yield result
+
     @admin_group.command("setname")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_setname(self, event: AstrMessageEvent, name: GreedyStr):
@@ -457,3 +496,66 @@ class Matrix_Admin_Plugin(
             yield event.plain_result(f"✅ {message}")
         else:
             yield event.plain_result(f"❌ {message}")
+
+    @admin_group.command("help")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_help(self, event: AstrMessageEvent):
+        """显示所有可用命令的帮助信息"""
+        help_text = (
+            "**Matrix Admin 管理命令帮助**\n\n"
+            "**用户管理：**\n"
+            "  `/admin kick <用户> [原因] [room_id]` - 踢出用户\n"
+            "  `/admin ban <用户> [原因] [room_id]` - 封禁用户\n"
+            "  `/admin unban <用户> [room_id]` - 解除封禁\n"
+            "  `/admin invite <用户> [room_id]` - 邀请用户\n"
+            "  `/admin whois <用户>` - 查询用户信息\n"
+            "  `/admin search <关键词> [数量]` - 搜索用户\n"
+            "  `/admin banlist [room_id]` - 查看封禁列表\n\n"
+            "**权限管理：**\n"
+            "  `/admin promote <用户> [级别] [room_id]` - 提升权限\n"
+            "  `/admin demote <用户> [room_id]` - 降低权限\n"
+            "  `/admin power <用户> <等级> [room_id]` - 设置权限等级\n"
+            "  `/admin admins [room_id]` - 列出管理员\n\n"
+            "**房间管理：**\n"
+            "  `/admin rooms` - 列出已加入的房间\n"
+            "  `/admin roominfo [room_id]` - 查看房间详情\n"
+            "  `/admin createroom <名称> [是否公开]` - 创建房间\n"
+            "  `/admin setroomname <名称> [room_id]` - 设置房间名称\n"
+            "  `/admin setroomtopic <主题> [room_id]` - 设置房间主题\n"
+            "  `/admin dm <用户>` - 创建私聊\n"
+            "  `/admin forget [room_id]` - 忘记房间\n"
+            "  `/admin knock <room_id> [原因]` - 请求加入\n"
+            "  `/admin roomrefresh [room_id|all]` - 刷新房间缓存\n\n"
+            "**空间 (Space) 管理：**\n"
+            "  `/admin spacecreate <名称> [是否公开] [主题]` - 创建 Space\n"
+            "  `/admin spacelink <space_id> <room_id> [推荐]` - 挂载子房间\n"
+            "  `/admin spaceunlink <space_id> <room_id>` - 移除子房间\n"
+            "  `/admin spacechildren <space_id> [limit]` - 查看子房间\n"
+            "  `/admin hierarchy [room_id] [limit]` - 查看层级\n\n"
+            "**别名管理：**\n"
+            "  `/admin aliasset <别名> [room_id]` - 设置别名\n"
+            "  `/admin aliasdel <别名>` - 删除别名\n"
+            "  `/admin aliasget <别名>` - 解析别名\n"
+            "  `/admin publicrooms [server] [limit]` - 公共房间列表\n\n"
+            "**Bot 管理：**\n"
+            "  `/admin setname <名称>` - 修改显示名称\n"
+            "  `/admin setavatar` - 修改头像（引用图片）\n"
+            "  `/admin setstatus <状态> [消息]` - 修改在线状态\n"
+            "  `/admin statusmsg [消息]` - 设置状态消息\n"
+            "  `/admin purgebot [数量] [room_id]` - 清理历史消息\n\n"
+            "**屏蔽管理：**\n"
+            "  `/admin ignore <用户>` - 屏蔽用户\n"
+            "  `/admin unignore <用户>` - 取消屏蔽\n"
+            "  `/admin ignorelist` - 查看屏蔽列表\n\n"
+            "**运行态命令：**\n"
+            "  `/admin scanqr <用户ID> <设备ID> [二维码] [platform_id]` - 扫描\n"
+            "  `/admin matrixstatus [platform_id]` - 适配器运行状态\n"
+            "  `/admin reconnect [platform_id]` - 重连 /sync\n"
+            "  `/admin resendpending [platform_id] [limit]` - 重试挂起消息\n"
+            "  `/admin verify <device_id>` - 手动确认 SAS 验证\n\n"
+            "**房间升级：**\n"
+            "  `/admin upgrade <版本> [room_id]` - 升级房间版本\n\n"
+            "提示：`[room_id]` 可选，默认使用当前房间。"
+            "`[platform_id]` 可选，多适配器时指定。"
+        )
+        yield event.plain_result(help_text)

@@ -145,9 +145,12 @@ class RuntimeCommandsMixin(AdminCommandMixin):
             f"认证：{status.get('auth_state') or '-'}",
             f"Sync：{status.get('sync_state') or '-'}",
             (
-                "同步统计：成功 "
-                f"{sync.get('sync_success_count', 0)} / 失败 {sync.get('sync_failure_count', 0)} "
-                f"/ 连续失败 {sync.get('consecutive_failures', 0)}"
+                "同步统计：成功 %s / 失败 %s / 连续失败 %s"
+                % (
+                    sync.get("sync_success_count", 0),
+                    sync.get("sync_failure_count", 0),
+                    sync.get("consecutive_failures", 0),
+                )
             ),
             (
                 "出站统计：pending "

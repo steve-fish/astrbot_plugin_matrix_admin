@@ -12,7 +12,7 @@ from .base import AdminCommandMixin
 
 
 class RoomCommandsMixin(AdminCommandMixin):
-    """房间管理命令：createroom, dm, alias, publicrooms, forget, upgrade, hierarchy, knock"""
+    """房间管理命令"""
 
     _ROOM_ID_RE = re.compile(r"^![^\s:]+:[^\s:]+$")
     _SERVER_NAME_RE = re.compile(r"^[A-Za-z0-9.-]+(?::\d{1,5})?$")
@@ -85,7 +85,9 @@ class RoomCommandsMixin(AdminCommandMixin):
             return (
                 False,
                 (
-                    f"无法校验房间 `{room_id}` 的权限，请确认机器人在房间内并可读取 power levels"
+                    "无法校验房间 `%s` 的权限，"
+                    "请确认机器人在房间内并可读取 power levels"
+                    % room_id
                 ),
             )
 
@@ -110,9 +112,9 @@ class RoomCommandsMixin(AdminCommandMixin):
             return (
                 False,
                 (
-                    f"权限不足：机器人在房间 `{room_id}` 的 power level 为 {bot_power}，"
-                    f"修改 `{event_type}` 需要 >= {required_level}"
-                ),
+                    "权限不足：机器人在房间 `%s` 的 power level 为 %s，"
+                    "修改 `%s` 需要 >= %s"
+                ) % (room_id, bot_power, event_type, required_level),
             )
 
         return True, ""
@@ -159,7 +161,8 @@ class RoomCommandsMixin(AdminCommandMixin):
             return (
                 False,
                 (
-                    f"房间 `{normalized_room_id}` 不是 Space（m.room.create.type={display_type}）"
+                    "房间 `%s` 不是 Space（m.room.create.type=%s）"
+                    % (normalized_room_id, display_type)
                 ),
             )
 
@@ -605,7 +608,8 @@ class RoomCommandsMixin(AdminCommandMixin):
             server_name = self._resolve_server_name(event, space_id)
         if not self._is_valid_server_name(server_name):
             yield event.plain_result(
-                "无法确定有效的 homeserver（via），请显式使用完整 room_id 并确保机器人已登录 Matrix"
+                "无法确定有效的 homeserver（via），"
+                "请显式使用完整 room_id 并确保机器人已登录 Matrix"
             )
             return
 
@@ -647,7 +651,8 @@ class RoomCommandsMixin(AdminCommandMixin):
                 state_key=space_id,
             )
             yield event.plain_result(
-                f"已将房间 `{child_room_id}` 挂载到 Space `{space_id}`（child/parent 已同步）"
+                "已将房间 `%s` 挂载到 Space `%s`（child/parent 已同步）"
+                % (child_room_id, space_id)
             )
         except Exception as e:
             if child_link_created:
@@ -747,7 +752,8 @@ class RoomCommandsMixin(AdminCommandMixin):
                 state_key=space_id,
             )
             yield event.plain_result(
-                f"已从 Space `{space_id}` 移除子房间 `{child_room_id}`（child/parent 已同步）"
+                "已从 Space `%s` 移除子房间 `%s`（child/parent 已同步）"
+                % (space_id, child_room_id)
             )
         except Exception as e:
             if child_link_removed and not self._is_not_found_error(e):
@@ -997,3 +1003,249 @@ class RoomCommandsMixin(AdminCommandMixin):
             yield event.plain_result(message)
         else:
             yield event.plain_result(message)
+
+    async def cmd_rooms(self, event: AstrMessageEvent):
+        """列出 Bot 已加入的所有房间
+
+        用法：/admin rooms
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        try:
+            rooms = await client.get_joined_rooms()
+            if isinstance(rooms, dict):
+                rooms = rooms.get("joined_rooms", [])
+            if not isinstance(rooms, (list, tuple, set)):
+                yield event.plain_result("获取房间列表失败：返回格式无效")
+                return
+
+            if not rooms:
+                yield event.plain_result("Bot 尚未加入任何房间")
+                return
+
+            lines = [f"**已加入的房间 ({len(rooms)} 个):**\n"]
+            for room_id in sorted(rooms, key=str.lower):
+                if not room_id:
+                    continue
+                # 尝试获取房间名称
+                try:
+                    state = await client.get_room_state(room_id)
+                    room_name = ""
+                    if isinstance(state, list):
+                        for evt in state:
+                            if (
+                                isinstance(evt, dict)
+                                and evt.get("type") == "m.room.name"
+                            ):
+                                room_name = (evt.get("content", {}) or {}).get(
+                                    "name", ""
+                                )
+                                break
+                    name_part = f" ({room_name})" if room_name else ""
+                except Exception:
+                    name_part = ""
+                lines.append(f"- `{room_id}`{name_part}")
+
+            yield event.plain_result("\n".join(lines))
+
+        except Exception as e:
+            logger.error(f"获取房间列表失败：{e}")
+            yield event.plain_result(self._format_error("获取房间列表失败", str(e)))
+
+    async def cmd_room_info(self, event: AstrMessageEvent, room_id: str = ""):
+        """查看房间详细信息
+
+        用法：/admin roominfo [room_id]
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        target_room = self._resolve_target_room(event, room_id)
+        ok, msg = self._validate_room_id(target_room)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        try:
+            state = await client.get_room_state(target_room)
+            if not isinstance(state, list):
+                state = []
+
+            room_name = ""
+            room_topic = ""
+            canonical_alias = ""
+            is_encrypted = False
+            room_version = ""
+            member_count = 0
+            room_type = ""
+
+            for evt in state:
+                if not isinstance(evt, dict):
+                    continue
+                content = evt.get("content", {})
+                if not isinstance(content, dict):
+                    content = {}
+                evt_type = evt.get("type", "")
+
+                if evt_type == "m.room.name":
+                    room_name = content.get("name", "")
+                elif evt_type == "m.room.topic":
+                    room_topic = content.get("topic", "")
+                elif evt_type == "m.room.canonical_alias":
+                    canonical_alias = content.get("alias", "")
+                elif evt_type == "m.room.encryption":
+                    is_encrypted = True
+                elif evt_type == "m.room.create":
+                    room_version = content.get("room_version", "")
+                    room_type = content.get("type", "")
+                elif evt_type == "m.room.member":
+                    member_count += 1
+
+            lines = [
+                f"**房间信息：{target_room}**\n",
+                f"名称：{room_name or '未设置'}",
+                f"别名：{canonical_alias or '未设置'}",
+                f"主题：{room_topic or '未设置'}",
+                f"类型：{room_type or '普通房间'}",
+                f"房间版本：{room_version or '未知'}",
+                f"加密：{'是' if is_encrypted else '否'}",
+                f"成员数：{member_count}",
+            ]
+            yield event.plain_result("\n".join(lines))
+
+        except Exception as e:
+            logger.error(f"获取房间信息失败：{e}")
+            yield event.plain_result(self._format_error("获取房间信息失败", str(e)))
+
+    async def cmd_banlist(self, event: AstrMessageEvent, room_id: str = ""):
+        """查看房间封禁列表
+
+        用法：/admin banlist [room_id]
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        target_room = self._resolve_target_room(event, room_id)
+        ok, msg = self._validate_room_id(target_room)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        try:
+            members = await client.get_room_members(target_room)
+            if not isinstance(members, dict):
+                members = {}
+            chunk = members.get("chunk", [])
+            if not isinstance(chunk, list):
+                chunk = []
+
+            banned = []
+            for evt in chunk:
+                if not isinstance(evt, dict):
+                    continue
+                if evt.get("type") != "m.room.member":
+                    continue
+                content = evt.get("content", {})
+                if not isinstance(content, dict):
+                    continue
+                if content.get("membership") == "ban":
+                    user_id = evt.get("state_key", "未知")
+                    reason = content.get("reason", "")
+                    banned.append((user_id, reason))
+
+            if not banned:
+                yield event.plain_result(f"房间 `{target_room}` 暂无封禁用户")
+                return
+
+            lines = [f"**封禁列表 ({len(banned)} 人)** - {target_room}\n"]
+            for user_id, reason in banned:
+                line = f"- `{user_id}`"
+                if reason:
+                    line += f" — {reason}"
+                lines.append(line)
+
+            yield event.plain_result("\n".join(lines))
+
+        except Exception as e:
+            logger.error(f"获取封禁列表失败：{e}")
+            yield event.plain_result(self._format_error("获取封禁列表失败", str(e)))
+
+    async def cmd_setroomname(
+        self, event: AstrMessageEvent, name: str, room_id: str = ""
+    ):
+        """设置房间名称
+
+        用法：/admin setroomname <名称> [room_id]
+
+        示例：
+            /admin setroomname 新群组名称
+            /admin setroomname 新名称 !roomid:example.com
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        target_room = self._resolve_target_room(event, room_id)
+        ok, msg = self._validate_room_id(target_room)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        name = str(name or "").strip()
+        if not name:
+            yield event.plain_result("房间名称不能为空")
+            return
+
+        try:
+            await client.set_room_name(target_room, name)
+            yield event.plain_result(f"已设置房间名称：{name}\n房间：{target_room}")
+        except Exception as e:
+            logger.error(f"设置房间名称失败：{e}")
+            yield event.plain_result(self._format_error("设置房间名称失败", str(e)))
+
+    async def cmd_setroomtopic(
+        self, event: AstrMessageEvent, topic: str, room_id: str = ""
+    ):
+        """设置房间主题
+
+        用法：/admin setroomtopic <主题> [room_id]
+
+        示例：
+            /admin setroomtopic 欢迎来到本群
+            /admin setroomtopic 新主题 !roomid:example.com
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        target_room = self._resolve_target_room(event, room_id)
+        ok, msg = self._validate_room_id(target_room)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        topic = str(topic or "").strip()
+        if not topic:
+            yield event.plain_result("房间主题不能为空")
+            return
+
+        try:
+            await client.set_room_topic(target_room, topic)
+            yield event.plain_result(f"已设置房间主题：{topic}\n房间：{target_room}")
+        except Exception as e:
+            logger.error(f"设置房间主题失败：{e}")
+            yield event.plain_result(self._format_error("设置房间主题失败", str(e)))

@@ -1,6 +1,8 @@
 name: astrbot_plugin_matrix_admin
-display_name: Matrix 管理插件
-description: Matrix 管理插件，提供房间管理、设备验证与适配器运维命令
+desc: Matrix 管理插件，提供房间管理、设备验证与适配器运维命令
+help: 使用 /admin 命令组查看所有可用命令。需要管理员权限。
+version: 0.3.0
 author: stevessr
-version: 0.2.0
 repo: https://github.com/stevessr/astrbot_plugin_matrix_admin
+support_platforms:
+  - matrix

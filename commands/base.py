@@ -201,3 +201,44 @@ class AdminCommandMixin:
         if room_id_text:
             return room_id_text
         return AdminCommandMixin._resolve_event_room_id(event)
+
+    @staticmethod
+    def _format_result(title: str, body: str = "", ok: bool | None = None) -> str:
+        """统一格式化结果消息"""
+        prefix = ""
+        if ok is True:
+            prefix = "✅ "
+        elif ok is False:
+            prefix = "❌ "
+        if title and body:
+            return f"{prefix}{title}\n{body}"
+        return f"{prefix}{title or body}"
+
+    @staticmethod
+    def _format_error(title: str, detail: str = "") -> str:
+        """统一格式化错误消息"""
+        msg = f"❌ {title}"
+        if detail:
+            msg += f"\n{detail}"
+        return msg
+
+    @staticmethod
+    def _validate_client(client) -> tuple[bool, str]:
+        """检查 Matrix 客户端是否可用"""
+        if client is None:
+            return False, "此命令仅在 Matrix 平台可用"
+        return True, ""
+
+    @staticmethod
+    def _validate_room_id(room_id: str | None) -> tuple[bool, str]:
+        """检查房间 ID 是否有效"""
+        if not room_id:
+            return False, "无法获取房间 ID"
+        return True, ""
+
+    @staticmethod
+    def _validate_user_id(user_id: str | None) -> tuple[bool, str]:
+        """检查用户 ID 是否有效"""
+        if not user_id:
+            return False, "无效的用户 ID"
+        return True, ""

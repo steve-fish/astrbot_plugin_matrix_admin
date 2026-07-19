@@ -43,7 +43,8 @@ def normalize_verify_room_templates(raw_templates) -> dict[str, list[str]]:
 
         if not adapter_name:
             logger.warning(
-                "[MatrixAdmin] matrix_admin_verify_temple_list[%s] 缺少 adapter_name，已跳过",
+                "[MatrixAdmin] matrix_admin_verify_temple_list[%s] "
+                "缺少 adapter_name，已跳过",
                 index,
             )
             continue

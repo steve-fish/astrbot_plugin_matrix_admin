@@ -12,6 +12,20 @@ from .base import AdminCommandMixin
 class PowerCommandsMixin(AdminCommandMixin):
     """权限管理命令：promote, demote, power, admins"""
 
+    async def _require_client_and_room(
+        self, event: AstrMessageEvent, room_id: str = ""
+    ) -> tuple:
+        """统一获取 client 和 target_room_id"""
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            return None, None, msg
+        target_room_id = self._resolve_target_room_id(event, room_id)
+        ok, msg = self._validate_room_id(target_room_id)
+        if not ok:
+            return None, None, msg
+        return client, target_room_id, None
+
     async def cmd_promote(
         self,
         event: AstrMessageEvent,
@@ -31,28 +45,21 @@ class PowerCommandsMixin(AdminCommandMixin):
             /admin promote @user:example.com
             /admin promote @user:example.com admin
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
-        target_room_id = self._resolve_target_room_id(event, room_id)
         level_text = str(level or "").strip().lower()
-        if (
-            not target_room_id
-            and not room_id
-            and level_text.startswith("!")
-            and ":" in level_text
-        ):
+        if not target_room_id and level_text.startswith("!") and ":" in level_text:
             target_room_id = level_text
             level_text = "mod"
 
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
-            return
-
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -74,7 +81,7 @@ class PowerCommandsMixin(AdminCommandMixin):
             )
         except Exception as e:
             logger.error(f"提升权限失败：{e}")
-            yield event.plain_result(f"提升权限失败：{e}")
+            yield event.plain_result(self._format_error("提升权限失败", str(e)))
 
     async def cmd_demote(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """降低用户权限为普通成员
@@ -85,18 +92,16 @@ class PowerCommandsMixin(AdminCommandMixin):
             /admin demote @user:example.com
             /admin demote @user:example.com !roomid:example.com
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
-            return
-
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -107,7 +112,7 @@ class PowerCommandsMixin(AdminCommandMixin):
             )
         except Exception as e:
             logger.error(f"降级失败：{e}")
-            yield event.plain_result(f"降级失败：{e}")
+            yield event.plain_result(self._format_error("降级失败", str(e)))
 
     async def cmd_power(
         self,
@@ -128,18 +133,16 @@ class PowerCommandsMixin(AdminCommandMixin):
         示例：
             /admin power @user:example.com 50
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
-            return
-
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         user_id = self._parse_user_id(user, event, target_room_id)
-        if not user_id:
+        ok, _ = self._validate_user_id(user_id)
+        if not ok:
             yield event.plain_result("无效的用户 ID")
             return
 
@@ -150,21 +153,18 @@ class PowerCommandsMixin(AdminCommandMixin):
             )
         except Exception as e:
             logger.error(f"设置权限失败：{e}")
-            yield event.plain_result(f"设置权限失败：{e}")
+            yield event.plain_result(self._format_error("设置权限失败", str(e)))
 
     async def cmd_admins(self, event: AstrMessageEvent, room_id: str = ""):
         """列出房间管理员
 
         用法：/admin admins [room_id]
         """
-        client = self._get_matrix_client(event)
-        if not client:
-            yield event.plain_result("此命令仅在 Matrix 平台可用")
-            return
-
-        target_room_id = self._resolve_target_room_id(event, room_id)
-        if not target_room_id:
-            yield event.plain_result("无法获取房间 ID")
+        client, target_room_id, error = await self._require_client_and_room(
+            event, room_id
+        )
+        if error:
+            yield event.plain_result(error)
             return
 
         try:
@@ -200,4 +200,4 @@ class PowerCommandsMixin(AdminCommandMixin):
 
         except Exception as e:
             logger.error(f"获取管理员列表失败：{e}")
-            yield event.plain_result(f"获取管理员列表失败：{e}")
+            yield event.plain_result(self._format_error("获取管理员列表失败", str(e)))
