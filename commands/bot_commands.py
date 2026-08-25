@@ -13,7 +13,7 @@ from .base import AdminCommandMixin
 
 
 class BotCommandsMixin(AdminCommandMixin):
-    """Bot 资料管理命令：setname, setavatar, setstatus"""
+    """Bot 资料管理命令：set name, set avatar, set status"""
 
     # 状态映射
     STATUS_MAP = {
@@ -31,11 +31,11 @@ class BotCommandsMixin(AdminCommandMixin):
     async def cmd_setname(self, event: AstrMessageEvent, name: GreedyStr):
         """修改 Bot 的显示名称
 
-        用法：/admin setname <新名称>
+        用法：/admin set name <新名称>
 
         示例：
-            /admin setname MyBot
-            /admin setname 我的机器人
+            /admin set name MyBot
+            /admin set name 我的机器人
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -53,19 +53,34 @@ class BotCommandsMixin(AdminCommandMixin):
             logger.error(f"修改 Bot 名称失败：{e}")
             yield event.plain_result(f"修改 Bot 名称失败：{e}")
 
-    async def cmd_setavatar(self, event: AstrMessageEvent):
-        """通过引用图片修改 Bot 的头像
+    async def cmd_setavatar(self, event: AstrMessageEvent, mxc_url: str = ""):
+        """修改 Bot 的头像（支持 mxc:// URL 或引用图片）
 
-        用法：引用一条包含图片的消息，然后发送 /admin setavatar
+        用法：/admin set avatar [mxc:// URL]
 
         示例：
-            1. 先发送或找到一张图片
-            2. 引用该图片消息
-            3. 发送 /admin setavatar
+            /admin set avatar mxc://matrix.org/AbCdEf
+            或引用一条包含图片的消息后发送 /admin set avatar
         """
         client = self._get_matrix_client(event)
         if not client:
             yield event.plain_result("此命令仅在 Matrix 平台可用")
+            return
+
+        # 直接提供 mxc:// URL 时跳过引用解析
+        direct_mxc = str(mxc_url or "").strip()
+        if direct_mxc:
+            if not direct_mxc.startswith("mxc://"):
+                yield event.plain_result("头像 URL 必须以 mxc:// 开头")
+                return
+            try:
+                await client.set_avatar_url(direct_mxc)
+                yield event.plain_result(
+                    f"已成功修改 Bot 头像\n头像 URL: `{direct_mxc}`"
+                )
+            except Exception as e:
+                logger.error(f"修改 Bot 头像失败：{e}")
+                yield event.plain_result(f"修改 Bot 头像失败：{e}")
             return
 
         # 获取原始消息中的引用信息
@@ -73,68 +88,19 @@ class BotCommandsMixin(AdminCommandMixin):
         if not room_id:
             yield event.plain_result("无法获取房间 ID")
             return
-        reply_event_id = None
-        image_mxc_url = None
 
-        # 尝试从原始消息中获取引用的事件 ID
-        try:
-            # message_obj.raw_message 是 RoomMessageEvent 对象
-            raw_message = getattr(event, "message_obj", None)
-            if raw_message:
-                raw_event = getattr(raw_message, "raw_message", None)
-                if raw_event:
-                    # raw_event 是 RoomMessageEvent，有 content 属性
-                    content = getattr(raw_event, "content", None)
-                    if content and isinstance(content, dict):
-                        relates_to = content.get("m.relates_to", {})
-                        in_reply_to = relates_to.get("m.in_reply_to", {})
-                        reply_event_id = in_reply_to.get("event_id")
-        except Exception as e:
-            logger.debug(f"获取引用事件 ID 失败：{e}")
-
-        if not reply_event_id:
-            yield event.plain_result(
-                "请引用一条包含图片的消息后再使用此命令\n\n"
-                "用法:\n"
-                "1. 找到或发送一张图片\n"
-                "2. 引用该图片消息\n"
-                "3. 发送 /admin setavatar"
-            )
+        image_mxc_url, error = await self._resolve_reply_image_mxc(
+            client, event, room_id
+        )
+        if error or not image_mxc_url:
+            yield event.plain_result(error or "无法获取图片 URL")
             return
 
-        # 获取被引用的消息内容
         try:
-            reply_event = await client.get_event(room_id, reply_event_id)
-            if not reply_event:
-                yield event.plain_result("无法获取被引用的消息")
-                return
-
-            reply_content = reply_event.get("content", {})
-            msgtype = reply_content.get("msgtype", "")
-
-            # 检查是否是图片消息
-            if msgtype == "m.image":
-                # 获取图片的 mxc URL
-                image_mxc_url = reply_content.get("url")
-            elif msgtype == "m.sticker" or reply_event.get("type") == "m.sticker":
-                # 贴纸也可以作为头像
-                image_mxc_url = reply_content.get("url")
-            else:
-                yield event.plain_result(
-                    f"被引用的消息不是图片 (类型：{msgtype})\n请引用一条包含图片的消息"
-                )
-                return
-
-            if not image_mxc_url:
-                yield event.plain_result("无法从被引用的消息中获取图片 URL")
-                return
-
-            # 设置头像
             await client.set_avatar_url(image_mxc_url)
             yield event.plain_result(
                 f"已成功修改 Bot 头像\n头像 URL: `{image_mxc_url}`"
             )
-
         except Exception as e:
             logger.error(f"修改 Bot 头像失败：{e}")
             yield event.plain_result(f"修改 Bot 头像失败：{e}")
@@ -144,7 +110,7 @@ class BotCommandsMixin(AdminCommandMixin):
     ):
         """修改 Bot 的在线状态
 
-        用法：/admin setstatus <状态> [状态消息]
+        用法：/admin set status <状态> [状态消息]
 
         状态：
             online / 在线 - 在线
@@ -152,9 +118,9 @@ class BotCommandsMixin(AdminCommandMixin):
             offline / 离线 - 离线
 
         示例：
-            /admin setstatus online
-            /admin setstatus away 暂时离开
-            /admin setstatus 忙碌 正在处理任务
+            /admin set status online
+            /admin set status away 暂时离开
+            /admin set status 忙碌 正在处理任务
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -165,14 +131,14 @@ class BotCommandsMixin(AdminCommandMixin):
             # 显示帮助信息
             yield event.plain_result(
                 "**修改 Bot 状态**\n\n"
-                "用法：/admin setstatus <状态> [状态消息]\n\n"
+                "用法：/admin set status <状态> [状态消息]\n\n"
                 "可用状态:\n"
                 "  - `online` / `在线` - 在线\n"
                 "  - `away` / `离开` / `busy` / `忙碌` - 离开\n"
                 "  - `offline` / `离线` - 离线\n\n"
                 "示例:\n"
-                "  /admin setstatus online\n"
-                "  /admin setstatus away 暂时离开"
+                "  /admin set status online\n"
+                "  /admin set status away 暂时离开"
             )
             return
 
@@ -212,12 +178,12 @@ class BotCommandsMixin(AdminCommandMixin):
     async def cmd_statusmsg(self, event: AstrMessageEvent, message: str = ""):
         """设置或清除 Bot 的状态消息（不改变在线状态）
 
-        用法：/admin statusmsg [消息]
+        用法：/admin set statusmsg [消息]
 
         示例：
-            /admin statusmsg 正在处理任务
-            /admin statusmsg 休息中，稍后回复
-            /admin statusmsg  (留空则清除状态消息)
+            /admin set statusmsg 正在处理任务
+            /admin set statusmsg 休息中，稍后回复
+            /admin set statusmsg  (留空则清除状态消息)
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -242,61 +208,63 @@ class BotCommandsMixin(AdminCommandMixin):
             logger.error(f"设置状态消息失败：{e}")
             yield event.plain_result(f"设置状态消息失败：{e}")
 
-    async def cmd_purge_bot_messages(
-        self, event: AstrMessageEvent, limit: int = 100, room_id: str = ""
+    async def cmd_purge_messages(
+        self, event: AstrMessageEvent, target: str = "", room_id: str = ""
     ):
-        """清理机器人在房间内发送的历史消息
+        """清理自己或指定用户在房间内发送的全部历史消息（直到对话开头）
 
-        用法：/admin purgebot [数量] [room_id]
+        用法：/admin purge self [@用户ID|room_id] [room_id]
 
         示例：
-            /admin purgebot
-            /admin purgebot 200
-            /admin purgebot 200 !roomid:example.org
+            /admin purge self
+            /admin purge self @user:example.org
+            /admin purge self @user:example.org !roomid:example.org
         """
         client = self._get_matrix_client(event)
         if not client:
             yield event.plain_result("此命令仅在 Matrix 平台可用")
             return
 
-        try:
-            limit = int(limit)
-        except (TypeError, ValueError):
-            yield event.plain_result("数量必须是整数")
-            return
+        target_text = str(target or "").strip()
+        target_room_id = str(room_id or "").strip()
+        # 第一个参数直接给房间 ID 时视为目标房间
+        if target_text.startswith("!"):
+            target_room_id = target_room_id or target_text
+            target_text = ""
 
-        if limit <= 0:
-            yield event.plain_result("数量必须大于 0")
-            return
-
-        target_room_id = room_id.strip() or str(event.get_session_id() or "").strip()
+        target_room_id = target_room_id or str(event.get_session_id() or "").strip()
         if not target_room_id:
             yield event.plain_result("无法获取房间 ID")
             return
 
-        bot_user_id = getattr(client, "user_id", None)
-        if not bot_user_id:
-            try:
-                whoami = await client.whoami()
-                bot_user_id = whoami.get("user_id")
-            except Exception as e:
-                yield event.plain_result(f"获取 Bot 用户 ID 失败：{e}")
+        if target_text:
+            purge_user_id = self._parse_user_id(target_text, event, target_room_id)
+            if not purge_user_id:
+                yield event.plain_result(f"无效的用户 ID：{target_text}")
                 return
+        else:
+            purge_user_id = getattr(client, "user_id", None)
+            if not purge_user_id:
+                try:
+                    whoami = await client.whoami()
+                    purge_user_id = whoami.get("user_id")
+                except Exception as e:
+                    yield event.plain_result(f"获取 Bot 用户 ID 失败：{e}")
+                    return
 
         scanned = 0
         redacted = 0
         failed = 0
         from_token = None
-        remaining = limit
 
-        while remaining > 0:
-            batch_limit = min(100, remaining)
+        # 从最新消息向前分页，直到房间历史开头
+        while True:
             try:
                 resp = await client.room_messages(
                     room_id=target_room_id,
                     from_token=from_token,
                     direction="b",
-                    limit=batch_limit,
+                    limit=100,
                 )
             except Exception as e:
                 yield event.plain_result(f"拉取房间消息失败：{e}")
@@ -308,20 +276,19 @@ class BotCommandsMixin(AdminCommandMixin):
 
             for msg in chunk:
                 scanned += 1
-                if msg.get("sender") != bot_user_id:
+                if msg.get("sender") != purge_user_id:
                     continue
                 event_id = msg.get("event_id")
                 if not event_id:
                     continue
                 try:
                     await client.redact_event(
-                        target_room_id, event_id, reason="admin purge bot messages"
+                        target_room_id, event_id, reason="admin purge messages"
                     )
                     redacted += 1
                 except Exception:
                     failed += 1
 
-            remaining -= len(chunk)
             from_token = resp.get("end")
             if not from_token:
                 break

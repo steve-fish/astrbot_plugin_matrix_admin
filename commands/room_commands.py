@@ -7,6 +7,7 @@ import re
 
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent
+from astrbot.core.star.filter.command import GreedyStr
 
 from .base import AdminCommandMixin
 
@@ -86,8 +87,7 @@ class RoomCommandsMixin(AdminCommandMixin):
                 False,
                 (
                     "无法校验房间 `%s` 的权限，"
-                    "请确认机器人在房间内并可读取 power levels"
-                    % room_id
+                    "请确认机器人在房间内并可读取 power levels" % room_id
                 ),
             )
 
@@ -114,7 +114,8 @@ class RoomCommandsMixin(AdminCommandMixin):
                 (
                     "权限不足：机器人在房间 `%s` 的 power level 为 %s，"
                     "修改 `%s` 需要 >= %s"
-                ) % (room_id, bot_power, event_type, required_level),
+                )
+                % (room_id, bot_power, event_type, required_level),
             )
 
         return True, ""
@@ -216,11 +217,11 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """创建新房间
 
-        用法：/admin createroom <房间名> [是否公开]
+        用法：/admin create room <房间名> [是否公开]
 
         示例：
-            /admin createroom 新群组
-            /admin createroom 公开频道 yes
+            /admin create room 新群组
+            /admin create room 公开频道 yes
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -273,8 +274,8 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """设置房间别名
 
-        用法：/admin aliasset <alias> [room_id]
-        示例：/admin aliasset #myroom:example.com
+        用法：/admin alias set <alias> [room_id]
+        示例：/admin alias set #myroom:example.com
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -301,7 +302,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_alias_del(self, event: AstrMessageEvent, alias: str):
         """删除房间别名
 
-        用法：/admin aliasdel <alias>
+        用法：/admin alias del <alias>
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -324,7 +325,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_alias_get(self, event: AstrMessageEvent, alias: str):
         """解析房间别名
 
-        用法：/admin aliasget <alias>
+        用法：/admin alias get <alias>
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -495,7 +496,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """创建 Matrix Space
 
-        用法：/admin spacecreate <名称> [是否公开] [主题]
+        用法：/admin space create <名称> [是否公开] [主题]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -558,7 +559,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """将房间关联到 Space
 
-        用法：/admin spacelink <space_id> <room_id> [是否推荐]
+        用法：/admin space link <space_id> <room_id> [是否推荐]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -681,7 +682,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """从 Space 移除子房间
 
-        用法：/admin spaceunlink <space_id> <room_id>
+        用法：/admin space unlink <space_id> <room_id>
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -789,7 +790,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """查看 Space 子房间列表
 
-        用法：/admin spacechildren <space_id> [limit]
+        用法：/admin space children <space_id> [limit]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -860,7 +861,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_room_refresh(self, event: AstrMessageEvent, room_id: str = ""):
         """重新获取房间信息并刷新本地缓存
 
-        用法：/admin roomrefresh [room_id|all]
+        用法：/admin room refresh [room_id|all]
         """
         try:
             from astrbot_plugin_matrix_adapter.room_member_store import (
@@ -1185,11 +1186,11 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """设置房间名称
 
-        用法：/admin setroomname <名称> [room_id]
+        用法：/admin room name set <名称> [room_id]
 
         示例：
-            /admin setroomname 新群组名称
-            /admin setroomname 新名称 !roomid:example.com
+            /admin room name set 新群组名称
+            /admin room name set 新名称 !roomid:example.com
         """
         client = self._get_matrix_client(event)
         ok, msg = self._validate_client(client)
@@ -1220,11 +1221,11 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """设置房间主题
 
-        用法：/admin setroomtopic <主题> [room_id]
+        用法：/admin room topic set <主题> [room_id]
 
         示例：
-            /admin setroomtopic 欢迎来到本群
-            /admin setroomtopic 新主题 !roomid:example.com
+            /admin room topic set 欢迎来到本群
+            /admin room topic set 新主题 !roomid:example.com
         """
         client = self._get_matrix_client(event)
         ok, msg = self._validate_client(client)
@@ -1249,3 +1250,122 @@ class RoomCommandsMixin(AdminCommandMixin):
         except Exception as e:
             logger.error(f"设置房间主题失败：{e}")
             yield event.plain_result(self._format_error("设置房间主题失败", str(e)))
+
+    async def cmd_room_set_name(self, event: AstrMessageEvent, name: GreedyStr):
+        """修改 Bot 在当前房间内的显示名称
+
+        用法：/admin room set name <名称>
+
+        示例：
+            /admin room set name 管理机器人
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        room_id = self._resolve_target_room(event)
+        ok, msg = self._validate_room_id(room_id)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        name = str(name or "").strip()
+        if not name:
+            yield event.plain_result("名称不能为空")
+            return
+
+        bot_user_id = getattr(client, "user_id", None)
+        if not bot_user_id:
+            try:
+                bot_user_id = (await client.whoami()).get("user_id")
+            except Exception as e:
+                yield event.plain_result(f"获取 Bot 用户 ID 失败：{e}")
+                return
+
+        try:
+            try:
+                member = await client.get_room_state_event(
+                    room_id, "m.room.member", bot_user_id
+                )
+            except Exception:
+                member = {}
+            content = dict(member) if isinstance(member, dict) else {}
+            content.setdefault("membership", "join")
+            content["displayname"] = name
+            await client.set_room_state_event(
+                room_id, "m.room.member", content, state_key=bot_user_id
+            )
+            yield event.plain_result(
+                f"已将 Bot 在本房间的名称修改为：{name}\n房间：{room_id}"
+            )
+        except Exception as e:
+            logger.error(f"修改房间内 Bot 名称失败：{e}")
+            yield event.plain_result(
+                self._format_error("修改房间内 Bot 名称失败", str(e))
+            )
+
+    async def cmd_room_set_avatar(self, event: AstrMessageEvent, mxc_url: str = ""):
+        """修改 Bot 在当前房间内的头像
+
+        用法：/admin room set avatar [mxc:// URL]
+
+        示例：
+            /admin room set avatar mxc://matrix.org/AbCdEf
+            或引用一条包含图片的消息后发送 /admin room set avatar
+        """
+        client = self._get_matrix_client(event)
+        ok, msg = self._validate_client(client)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        room_id = self._resolve_target_room(event)
+        ok, msg = self._validate_room_id(room_id)
+        if not ok:
+            yield event.plain_result(msg)
+            return
+
+        avatar_mxc = str(mxc_url or "").strip()
+        if avatar_mxc and not avatar_mxc.startswith("mxc://"):
+            yield event.plain_result("头像 URL 必须以 mxc:// 开头")
+            return
+
+        if not avatar_mxc:
+            avatar_mxc, error = await self._resolve_reply_image_mxc(
+                client, event, room_id
+            )
+            if error or not avatar_mxc:
+                yield event.plain_result(error or "无法获取图片 URL")
+                return
+
+        bot_user_id = getattr(client, "user_id", None)
+        if not bot_user_id:
+            try:
+                bot_user_id = (await client.whoami()).get("user_id")
+            except Exception as e:
+                yield event.plain_result(f"获取 Bot 用户 ID 失败：{e}")
+                return
+
+        try:
+            try:
+                member = await client.get_room_state_event(
+                    room_id, "m.room.member", bot_user_id
+                )
+            except Exception:
+                member = {}
+            content = dict(member) if isinstance(member, dict) else {}
+            content.setdefault("membership", "join")
+            content["avatar_url"] = avatar_mxc
+            await client.set_room_state_event(
+                room_id, "m.room.member", content, state_key=bot_user_id
+            )
+            yield event.plain_result(
+                f"已修改 Bot 在本房间的头像\n头像 URL: `{avatar_mxc}`\n房间：{room_id}"
+            )
+        except Exception as e:
+            logger.error(f"修改房间内 Bot 头像失败：{e}")
+            yield event.plain_result(
+                self._format_error("修改房间内 Bot 头像失败", str(e))
+            )

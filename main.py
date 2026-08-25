@@ -30,7 +30,7 @@ from .tool import (
     "astrbot_plugin_matrix_admin",
     "stevessr",
     "Matrix 管理插件，提供房间管理、设备验证与适配器运维命令",
-    "0.3.0",
+    "0.4.0",
 )
 class Matrix_Admin_Plugin(
     Star,
@@ -185,13 +185,30 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_ignorelist(event):
             yield result
 
-    @admin_group.command("createroom")
+    @admin_group.group("create")
+    def admin_create_group(self):
+        """创建命令"""
+
+    @admin_create_group.command("room")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_createroom(
+    async def admin_create_room(
         self, event: AstrMessageEvent, name: str, is_public: str = "no"
     ):
         """创建新房间"""
         async for result in self.cmd_createroom(event, name, is_public):
+            yield result
+
+    @admin_create_group.command("space")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_create_space(
+        self,
+        event: AstrMessageEvent,
+        name: str,
+        is_public: str = "no",
+        topic: str = "",
+    ):
+        """创建 Space"""
+        async for result in self.cmd_space_create(event, name, is_public, topic):
             yield result
 
     @admin_group.command("dm")
@@ -201,7 +218,11 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_dm(event, user):
             yield result
 
-    @admin_group.command("aliasset")
+    @admin_group.group("alias")
+    def admin_alias_group(self):
+        """房间别名命令"""
+
+    @admin_alias_group.command("set")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_alias_set(
         self, event: AstrMessageEvent, alias: str, room_id: str = ""
@@ -210,14 +231,14 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_alias_set(event, alias, room_id):
             yield result
 
-    @admin_group.command("aliasdel")
+    @admin_alias_group.command("del")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_alias_del(self, event: AstrMessageEvent, alias: str):
         """删除房间别名"""
         async for result in self.cmd_alias_del(event, alias):
             yield result
 
-    @admin_group.command("aliasget")
+    @admin_alias_group.command("get")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_alias_get(self, event: AstrMessageEvent, alias: str):
         """解析房间别名"""
@@ -258,9 +279,13 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_hierarchy(event, room_id, limit):
             yield result
 
-    @admin_group.command("spacecreate")
+    @admin_group.group("space")
+    def admin_space_group(self):
+        """Space 管理命令"""
+
+    @admin_space_group.command("create")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_spacecreate(
+    async def admin_space_create(
         self,
         event: AstrMessageEvent,
         name: str,
@@ -271,9 +296,9 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_space_create(event, name, is_public, topic):
             yield result
 
-    @admin_group.command("spacelink")
+    @admin_space_group.command("link")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_spacelink(
+    async def admin_space_link(
         self,
         event: AstrMessageEvent,
         space_id: str,
@@ -289,9 +314,9 @@ class Matrix_Admin_Plugin(
         ):
             yield result
 
-    @admin_group.command("spaceunlink")
+    @admin_space_group.command("unlink")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_spaceunlink(
+    async def admin_space_unlink(
         self,
         event: AstrMessageEvent,
         space_id: str,
@@ -301,9 +326,9 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_space_unlink(event, space_id, child_room_id):
             yield result
 
-    @admin_group.command("spacechildren")
+    @admin_space_group.command("children")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_spacechildren(
+    async def admin_space_children(
         self,
         event: AstrMessageEvent,
         space_id: str,
@@ -322,10 +347,14 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_knock(event, room_id_or_alias, reason):
             yield result
 
-    @admin_group.command("roomrefresh")
+    @admin_group.group("room")
+    def admin_room_group(self):
+        """房间管理命令"""
+
+    @admin_room_group.command("refresh")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_roomrefresh(self, event: AstrMessageEvent, room_id: str = ""):
-        """重新获取房间信息"""
+    async def admin_room_refresh(self, event: AstrMessageEvent, room_id: str = ""):
+        """重新获取房间信息（默认当前房间）"""
         async for result in self.cmd_room_refresh(event, room_id):
             yield result
 
@@ -350,66 +379,146 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_banlist(event, room_id):
             yield result
 
-    @admin_group.command("setroomname")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_setroomname(
-        self, event: AstrMessageEvent, name: GreedyStr, room_id: str = ""
-    ):
-        """设置房间名称"""
-        async for result in self.cmd_setroomname(event, name, room_id):
-            yield result
+    @admin_group.group("set")
+    def admin_set_group(self):
+        """Bot 资料设置命令"""
 
-    @admin_group.command("setroomtopic")
+    @admin_set_group.command("name")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_setroomtopic(
-        self, event: AstrMessageEvent, topic: GreedyStr, room_id: str = ""
-    ):
-        """设置房间主题"""
-        async for result in self.cmd_setroomtopic(event, topic, room_id):
-            yield result
-
-    @admin_group.command("setname")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_setname(self, event: AstrMessageEvent, name: GreedyStr):
+    async def admin_set_name(self, event: AstrMessageEvent, name: GreedyStr):
         """修改 Bot 的显示名称"""
         async for result in self.cmd_setname(event, name):
             yield result
 
-    @admin_group.command("setavatar")
+    @admin_set_group.command("avatar")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_setavatar(self, event: AstrMessageEvent):
-        """通过引用图片修改 Bot 的头像"""
-        async for result in self.cmd_setavatar(event):
+    async def admin_set_avatar(self, event: AstrMessageEvent, mxc_url: str = ""):
+        """修改 Bot 的头像（可接 mxc:// URL 或引用图片）"""
+        async for result in self.cmd_setavatar(event, mxc_url):
             yield result
 
-    @admin_group.command("setstatus")
+    @admin_set_group.command("status")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_setstatus(
+    async def admin_set_status(
         self, event: AstrMessageEvent, status: str = "", message: str = ""
     ):
         """修改 Bot 的在线状态"""
         async for result in self.cmd_setstatus(event, status, message):
             yield result
 
-    @admin_group.command("statusmsg")
+    @admin_set_group.command("statusmsg")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_statusmsg(self, event: AstrMessageEvent, message: str = ""):
+    async def admin_set_statusmsg(self, event: AstrMessageEvent, message: str = ""):
         """设置或清除 Bot 的状态消息"""
         async for result in self.cmd_statusmsg(event, message):
             yield result
 
-    @admin_group.command("purgebot")
+    @admin_room_group.group("name")
+    def admin_room_name_group(self):
+        """房间名称命令"""
+
+    @admin_room_name_group.command("set")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_purgebot(
-        self, event: AstrMessageEvent, limit: int = 100, room_id: str = ""
+    async def admin_room_name_set(
+        self, event: AstrMessageEvent, name_or_room: GreedyStr
     ):
-        """清理机器人历史消息"""
-        async for result in self.cmd_purge_bot_messages(event, limit, room_id):
+        """设置房间名称"""
+        name, room_id = split_reason_and_room_id(name_or_room)
+        async for result in self.cmd_setroomname(event, name, room_id):
             yield result
 
-    @admin_group.command("scanqr")
+    @admin_room_group.group("topic")
+    def admin_room_topic_group(self):
+        """房间主题命令"""
+
+    @admin_room_topic_group.command("set")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_scanqr(
+    async def admin_room_topic_set(
+        self, event: AstrMessageEvent, topic_or_room: GreedyStr
+    ):
+        """设置房间主题"""
+        topic, room_id = split_reason_and_room_id(topic_or_room)
+        async for result in self.cmd_setroomtopic(event, topic, room_id):
+            yield result
+
+    @admin_room_group.group("set")
+    def admin_room_set_group(self):
+        """Bot 房间内资料设置命令"""
+
+    @admin_room_set_group.command("name")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_room_member_name(self, event: AstrMessageEvent, name: GreedyStr):
+        """修改 Bot 在房间内的显示名称"""
+        async for result in self.cmd_room_set_name(event, name):
+            yield result
+
+    @admin_room_set_group.command("avatar")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_room_member_avatar(
+        self, event: AstrMessageEvent, mxc_url: str = ""
+    ):
+        """修改 Bot 在房间内的头像（可接 mxc:// URL 或引用图片）"""
+        async for result in self.cmd_room_set_avatar(event, mxc_url):
+            yield result
+
+    @admin_group.group("purge")
+    def admin_purge_group(self):
+        """消息清理命令"""
+
+    @admin_purge_group.command("self")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_purge_self(
+        self, event: AstrMessageEvent, target: str = "", room_id: str = ""
+    ):
+        """清理自己或指定用户的历史消息"""
+        async for result in self.cmd_purge_messages(event, target, room_id):
+            yield result
+
+    @admin_group.group("matrix")
+    def admin_matrix_group(self):
+        """Matrix 适配器运维命令"""
+
+    @admin_matrix_group.command("status")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_matrix_status(
+        self,
+        event: AstrMessageEvent,
+        matrix_platform_id: str = "",
+    ):
+        """查看 Matrix 适配器运行状态。"""
+        async for result in self.cmd_matrixstatus(event, matrix_platform_id):
+            yield result
+
+    @admin_matrix_group.command("reconnect")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_reconnect(
+        self,
+        event: AstrMessageEvent,
+        matrix_platform_id: str = "",
+    ):
+        """主动中断当前 /sync 长轮询并立即重连。"""
+        async for result in self.cmd_reconnect(event, matrix_platform_id):
+            yield result
+
+    @admin_matrix_group.command("resendpending")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_resendpending(
+        self,
+        event: AstrMessageEvent,
+        matrix_platform_id: str = "",
+        limit: str = "20",
+    ):
+        """重试最近失败或挂起的出站消息记录。"""
+        async for result in self.cmd_resendpending(event, matrix_platform_id, limit):
+            yield result
+
+    @admin_group.group("verify")
+    def admin_verify_group(self):
+        """设备验证命令"""
+
+    @admin_verify_group.command("qr")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_verify_qr(
         self,
         event: AstrMessageEvent,
         user_id: str,
@@ -427,43 +536,9 @@ class Matrix_Admin_Plugin(
         ):
             yield result
 
-    @admin_group.command("matrixstatus")
+    @admin_verify_group.command("sas")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_matrixstatus(
-        self,
-        event: AstrMessageEvent,
-        matrix_platform_id: str = "",
-    ):
-        """查看 Matrix 适配器运行状态。"""
-        async for result in self.cmd_matrixstatus(event, matrix_platform_id):
-            yield result
-
-    @admin_group.command("reconnect")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_reconnect(
-        self,
-        event: AstrMessageEvent,
-        matrix_platform_id: str = "",
-    ):
-        """主动中断当前 /sync 长轮询并立即重连。"""
-        async for result in self.cmd_reconnect(event, matrix_platform_id):
-            yield result
-
-    @admin_group.command("resendpending")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_resendpending(
-        self,
-        event: AstrMessageEvent,
-        matrix_platform_id: str = "",
-        limit: str = "20",
-    ):
-        """重试最近失败或挂起的出站消息记录。"""
-        async for result in self.cmd_resendpending(event, matrix_platform_id, limit):
-            yield result
-
-    @admin_group.command("verify")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_verify(self, event: AstrMessageEvent, device_id: str):
+    async def admin_verify_sas(self, event: AstrMessageEvent, device_id: str):
         """手动确认 SAS 验证（支持按 adapter 推送到多房间）"""
         if str(event.get_platform_name() or "").strip().lower() != "matrix":
             yield event.plain_result("此命令仅在 Matrix 平台可用")
@@ -519,40 +594,43 @@ class Matrix_Admin_Plugin(
             "**房间管理：**\n"
             "  `/admin rooms` - 列出已加入的房间\n"
             "  `/admin roominfo [room_id]` - 查看房间详情\n"
-            "  `/admin createroom <名称> [是否公开]` - 创建房间\n"
-            "  `/admin setroomname <名称> [room_id]` - 设置房间名称\n"
-            "  `/admin setroomtopic <主题> [room_id]` - 设置房间主题\n"
+            "  `/admin create room <名称> [是否公开]` - 创建房间\n"
+            "  `/admin create space <名称> [是否公开] [主题]` - 创建 Space\n"
+            "  `/admin room name set <名称> [room_id]` - 设置房间名称\n"
+            "  `/admin room topic set <主题> [room_id]` - 设置房间主题\n"
+            "  `/admin room set name <名称>` - 修改 Bot 房间内名称\n"
+            "  `/admin room set avatar [mxc://URL]` - 修改 Bot 房间内头像\n"
             "  `/admin dm <用户>` - 创建私聊\n"
             "  `/admin forget [room_id]` - 忘记房间\n"
             "  `/admin knock <room_id> [原因]` - 请求加入\n"
-            "  `/admin roomrefresh [room_id|all]` - 刷新房间缓存\n\n"
+            "  `/admin room refresh [room_id|all]` - 刷新房间缓存（默认当前房间）\n\n"
             "**空间 (Space) 管理：**\n"
-            "  `/admin spacecreate <名称> [是否公开] [主题]` - 创建 Space\n"
-            "  `/admin spacelink <space_id> <room_id> [推荐]` - 挂载子房间\n"
-            "  `/admin spaceunlink <space_id> <room_id>` - 移除子房间\n"
-            "  `/admin spacechildren <space_id> [limit]` - 查看子房间\n"
+            "  `/admin space create <名称> [是否公开] [主题]` - 创建 Space\n"
+            "  `/admin space link <space_id> <room_id> [推荐]` - 挂载子房间\n"
+            "  `/admin space unlink <space_id> <room_id>` - 移除子房间\n"
+            "  `/admin space children <space_id> [limit]` - 查看子房间\n"
             "  `/admin hierarchy [room_id] [limit]` - 查看层级\n\n"
             "**别名管理：**\n"
-            "  `/admin aliasset <别名> [room_id]` - 设置别名\n"
-            "  `/admin aliasdel <别名>` - 删除别名\n"
-            "  `/admin aliasget <别名>` - 解析别名\n"
+            "  `/admin alias set <别名> [room_id]` - 设置别名\n"
+            "  `/admin alias del <别名>` - 删除别名\n"
+            "  `/admin alias get <别名>` - 解析别名\n"
             "  `/admin publicrooms [server] [limit]` - 公共房间列表\n\n"
             "**Bot 管理：**\n"
-            "  `/admin setname <名称>` - 修改显示名称\n"
-            "  `/admin setavatar` - 修改头像（引用图片）\n"
-            "  `/admin setstatus <状态> [消息]` - 修改在线状态\n"
-            "  `/admin statusmsg [消息]` - 设置状态消息\n"
-            "  `/admin purgebot [数量] [room_id]` - 清理历史消息\n\n"
+            "  `/admin set name <名称>` - 修改显示名称\n"
+            "  `/admin set avatar [mxc://URL]` - 修改头像（URL 或引用图片）\n"
+            "  `/admin set status <状态> [消息]` - 修改在线状态\n"
+            "  `/admin set statusmsg [消息]` - 设置状态消息\n"
+            "  `/admin purge self [@用户] [room_id]` - 清理历史消息直到对话开头\n\n"
             "**屏蔽管理：**\n"
             "  `/admin ignore <用户>` - 屏蔽用户\n"
             "  `/admin unignore <用户>` - 取消屏蔽\n"
             "  `/admin ignorelist` - 查看屏蔽列表\n\n"
             "**运行态命令：**\n"
-            "  `/admin scanqr <用户ID> <设备ID> [二维码] [platform_id]` - 扫描\n"
-            "  `/admin matrixstatus [platform_id]` - 适配器运行状态\n"
-            "  `/admin reconnect [platform_id]` - 重连 /sync\n"
-            "  `/admin resendpending [platform_id] [limit]` - 重试挂起消息\n"
-            "  `/admin verify <device_id>` - 手动确认 SAS 验证\n\n"
+            "  `/admin verify qr <用户ID> <设备ID> [二维码] [platform_id]` - 扫码验证\n"
+            "  `/admin matrix status [platform_id]` - 适配器运行状态\n"
+            "  `/admin matrix reconnect [platform_id]` - 重连 /sync\n"
+            "  `/admin matrix resendpending [platform_id] [limit]` - 重试挂起消息\n"
+            "  `/admin verify sas <device_id>` - 手动确认 SAS 验证\n\n"
             "**房间升级：**\n"
             "  `/admin upgrade <版本> [room_id]` - 升级房间版本\n\n"
             "提示：`[room_id]` 可选，默认使用当前房间。"

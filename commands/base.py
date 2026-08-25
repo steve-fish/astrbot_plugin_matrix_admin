@@ -242,3 +242,70 @@ class AdminCommandMixin:
         if not user_id:
             return False, "无效的用户 ID"
         return True, ""
+
+    async def _resolve_reply_image_mxc(
+        self,
+        client,
+        event: AstrMessageEvent,
+        room_id: str,
+    ) -> tuple[str | None, str]:
+        """从事件引用的图片消息中提取 mxc:// URL。
+
+        Args:
+            client: Matrix 客户端实例。
+            event: 携带引用信息的命令事件。
+            room_id: 被引用消息所在房间。
+
+        Returns:
+            (mxc_url, error_message) 二元组；成功时 error_message 为空字符串，
+            失败时 mxc_url 为 None。
+        """
+        reply_event_id = None
+
+        # message_obj.raw_message 是 RoomMessageEvent 对象
+        try:
+            raw_message = getattr(event, "message_obj", None)
+            if raw_message:
+                raw_event = getattr(raw_message, "raw_message", None)
+                if raw_event:
+                    content = getattr(raw_event, "content", None)
+                    if content and isinstance(content, dict):
+                        relates_to = content.get("m.relates_to", {})
+                        in_reply_to = relates_to.get("m.in_reply_to", {})
+                        reply_event_id = in_reply_to.get("event_id")
+        except Exception as e:
+            logger.debug(f"获取引用事件 ID 失败：{e}")
+
+        if not reply_event_id:
+            return None, (
+                "请引用一条包含图片的消息后再使用此命令，或直接提供 mxc:// 图片 URL\n\n"
+                "用法:\n"
+                "1. 找到或发送一张图片\n"
+                "2. 引用该图片消息\n"
+                "3. 发送命令（也可直接附带 mxc:// URL）"
+            )
+
+        try:
+            reply_event = await client.get_event(room_id, reply_event_id)
+            if not reply_event:
+                return None, "无法获取被引用的消息"
+
+            reply_content = reply_event.get("content", {})
+            msgtype = reply_content.get("msgtype", "")
+
+            # 图片与贴纸均可作为头像来源
+            if (
+                msgtype not in ("m.image", "m.sticker")
+                and reply_event.get("type") != "m.sticker"
+            ):
+                return None, (
+                    f"被引用的消息不是图片 (类型：{msgtype})\n请引用一条包含图片的消息"
+                )
+
+            image_mxc_url = reply_content.get("url")
+            if not image_mxc_url:
+                return None, "无法从被引用的消息中获取图片 URL"
+            return image_mxc_url, ""
+        except Exception as e:
+            logger.error(f"获取被引用图片失败：{e}")
+            return None, f"获取被引用图片失败：{e}"

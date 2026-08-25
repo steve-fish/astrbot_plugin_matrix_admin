@@ -11,7 +11,7 @@ from .base import AdminCommandMixin
 
 
 class RuntimeCommandsMixin(AdminCommandMixin):
-    """运行态命令：scanqr, matrixstatus, reconnect, resendpending"""
+    """运行态命令：verify qr, matrix status, reconnect, resendpending"""
 
     @staticmethod
     def _normalize_qr_input(qr_input: str) -> str:
