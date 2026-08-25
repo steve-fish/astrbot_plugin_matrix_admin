@@ -35,15 +35,15 @@ class PowerCommandsMixin(AdminCommandMixin):
     ):
         """提升用户权限
 
-        用法：/admin promote <用户 ID> [级别] [room_id]
+        用法：/admin power promote <用户 ID> [级别] [room_id]
 
         级别：
             mod - 管理员 (50)
             admin - 房主 (100)
 
         示例：
-            /admin promote @user:example.com
-            /admin promote @user:example.com admin
+            /admin power promote @user:example.com
+            /admin power promote @user:example.com admin
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
@@ -86,11 +86,11 @@ class PowerCommandsMixin(AdminCommandMixin):
     async def cmd_demote(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """降低用户权限为普通成员
 
-        用法：/admin demote <用户 ID> [room_id]
+        用法：/admin power demote <用户 ID> [room_id]
 
         示例：
-            /admin demote @user:example.com
-            /admin demote @user:example.com !roomid:example.com
+            /admin power demote @user:example.com
+            /admin power demote @user:example.com !roomid:example.com
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
@@ -123,7 +123,7 @@ class PowerCommandsMixin(AdminCommandMixin):
     ):
         """设置用户权限等级
 
-        用法：/admin power <用户 ID> <等级> [room_id]
+        用法：/admin power power <用户 ID> <等级> [room_id]
 
         等级说明：
             0 - 普通成员
@@ -131,7 +131,7 @@ class PowerCommandsMixin(AdminCommandMixin):
             100 - 房主
 
         示例：
-            /admin power @user:example.com 50
+            /admin power power @user:example.com 50
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
@@ -158,7 +158,7 @@ class PowerCommandsMixin(AdminCommandMixin):
     async def cmd_admins(self, event: AstrMessageEvent, room_id: str = ""):
         """列出房间管理员
 
-        用法：/admin admins [room_id]
+        用法：/admin power admins [room_id]
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id

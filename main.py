@@ -72,7 +72,11 @@ class Matrix_Admin_Plugin(
     def admin_group(self):
         """Matrix 房间管理命令"""
 
-    @admin_group.command("kick")
+    @admin_group.group("user")
+    def admin_user_group(self):
+        """用户管理命令"""
+
+    @admin_user_group.command("kick")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_kick(
         self,
@@ -85,7 +89,7 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_kick(event, user, reason, room_id):
             yield result
 
-    @admin_group.command("ban")
+    @admin_user_group.command("ban")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_ban(
         self,
@@ -98,21 +102,41 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_ban(event, user, reason, room_id):
             yield result
 
-    @admin_group.command("unban")
+    @admin_user_group.command("unban")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_unban(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """解除封禁"""
         async for result in self.cmd_unban(event, user, room_id):
             yield result
 
-    @admin_group.command("invite")
+    @admin_user_group.command("invite")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_invite(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """邀请用户加入房间"""
         async for result in self.cmd_invite(event, user, room_id):
             yield result
 
-    @admin_group.command("promote")
+    @admin_user_group.command("whois")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_whois(self, event: AstrMessageEvent, user: str):
+        """查询用户信息"""
+        async for result in self.cmd_whois(event, user):
+            yield result
+
+    @admin_user_group.command("search")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_search(
+        self, event: AstrMessageEvent, keyword: str, limit: int = 10
+    ):
+        """搜索用户"""
+        async for result in self.cmd_search(event, keyword, limit):
+            yield result
+
+    @admin_group.group("power")
+    def admin_power_group(self):
+        """权限管理命令"""
+
+    @admin_power_group.command("promote")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_promote(
         self,
@@ -125,14 +149,14 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_promote(event, user, level, room_id):
             yield result
 
-    @admin_group.command("demote")
+    @admin_power_group.command("demote")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_demote(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """降低用户权限为普通成员"""
         async for result in self.cmd_demote(event, user, room_id):
             yield result
 
-    @admin_group.command("power")
+    @admin_power_group.command("power")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_power(
         self, event: AstrMessageEvent, user: str, level: int, room_id: str = ""
@@ -141,81 +165,36 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_power(event, user, level, room_id):
             yield result
 
-    @admin_group.command("admins")
+    @admin_power_group.command("admins")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_list_admins(self, event: AstrMessageEvent, room_id: str = ""):
         """列出房间管理员"""
         async for result in self.cmd_admins(event, room_id):
             yield result
 
-    @admin_group.command("whois")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_whois(self, event: AstrMessageEvent, user: str):
-        """查询用户信息"""
-        async for result in self.cmd_whois(event, user):
-            yield result
+    @admin_group.group("ignore")
+    def admin_ignore_group(self):
+        """屏蔽管理命令"""
 
-    @admin_group.command("search")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_search(
-        self, event: AstrMessageEvent, keyword: str, limit: int = 10
-    ):
-        """搜索用户"""
-        async for result in self.cmd_search(event, keyword, limit):
-            yield result
-
-    @admin_group.command("ignore")
+    @admin_ignore_group.command("add")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_ignore(self, event: AstrMessageEvent, user: str):
         """屏蔽用户"""
         async for result in self.cmd_ignore(event, user):
             yield result
 
-    @admin_group.command("unignore")
+    @admin_ignore_group.command("del")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_unignore(self, event: AstrMessageEvent, user: str):
         """取消屏蔽用户"""
         async for result in self.cmd_unignore(event, user):
             yield result
 
-    @admin_group.command("ignorelist")
+    @admin_ignore_group.command("list")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_ignorelist(self, event: AstrMessageEvent):
         """查看屏蔽列表"""
         async for result in self.cmd_ignorelist(event):
-            yield result
-
-    @admin_group.group("create")
-    def admin_create_group(self):
-        """创建命令"""
-
-    @admin_create_group.command("room")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_create_room(
-        self, event: AstrMessageEvent, name: str, is_public: str = "no"
-    ):
-        """创建新房间"""
-        async for result in self.cmd_createroom(event, name, is_public):
-            yield result
-
-    @admin_create_group.command("space")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_create_space(
-        self,
-        event: AstrMessageEvent,
-        name: str,
-        is_public: str = "no",
-        topic: str = "",
-    ):
-        """创建 Space"""
-        async for result in self.cmd_space_create(event, name, is_public, topic):
-            yield result
-
-    @admin_group.command("dm")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_dm(self, event: AstrMessageEvent, user: str):
-        """创建与用户的私聊房间"""
-        async for result in self.cmd_dm(event, user):
             yield result
 
     @admin_group.group("alias")
@@ -252,31 +231,6 @@ class Matrix_Admin_Plugin(
     ):
         """列出公共房间"""
         async for result in self.cmd_publicrooms(event, server, limit):
-            yield result
-
-    @admin_group.command("forget")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_forget(self, event: AstrMessageEvent, room_id: str = ""):
-        """忘记房间"""
-        async for result in self.cmd_forget(event, room_id):
-            yield result
-
-    @admin_group.command("upgrade")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_upgrade(
-        self, event: AstrMessageEvent, new_version: str, room_id: str = ""
-    ):
-        """升级房间版本"""
-        async for result in self.cmd_upgrade(event, new_version, room_id):
-            yield result
-
-    @admin_group.command("hierarchy")
-    @filter.permission_type(PermissionType.ADMIN)
-    async def admin_hierarchy(
-        self, event: AstrMessageEvent, room_id: str = "", limit: int = 20
-    ):
-        """获取房间层级"""
-        async for result in self.cmd_hierarchy(event, room_id, limit):
             yield result
 
     @admin_group.group("space")
@@ -338,13 +292,13 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_space_children(event, space_id, limit):
             yield result
 
-    @admin_group.command("knock")
+    @admin_space_group.command("hierarchy")
     @filter.permission_type(PermissionType.ADMIN)
-    async def admin_knock(
-        self, event: AstrMessageEvent, room_id_or_alias: str, reason: str = ""
+    async def admin_space_hierarchy(
+        self, event: AstrMessageEvent, room_id: str = "", limit: int = 20
     ):
-        """敲门请求加入房间"""
-        async for result in self.cmd_knock(event, room_id_or_alias, reason):
+        """获取 Space/房间层级"""
+        async for result in self.cmd_hierarchy(event, room_id, limit):
             yield result
 
     @admin_group.group("room")
@@ -358,21 +312,62 @@ class Matrix_Admin_Plugin(
         async for result in self.cmd_room_refresh(event, room_id):
             yield result
 
-    @admin_group.command("rooms")
+    @admin_room_group.command("create")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_room_create(
+        self, event: AstrMessageEvent, name: str, is_public: str = "no"
+    ):
+        """创建新房间"""
+        async for result in self.cmd_createroom(event, name, is_public):
+            yield result
+
+    @admin_room_group.command("dm")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_dm(self, event: AstrMessageEvent, user: str):
+        """创建与用户的私聊房间"""
+        async for result in self.cmd_dm(event, user):
+            yield result
+
+    @admin_room_group.command("knock")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_knock(
+        self, event: AstrMessageEvent, room_id_or_alias: str, reason: str = ""
+    ):
+        """敲门请求加入房间"""
+        async for result in self.cmd_knock(event, room_id_or_alias, reason):
+            yield result
+
+    @admin_room_group.command("forget")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_forget(self, event: AstrMessageEvent, room_id: str = ""):
+        """忘记房间"""
+        async for result in self.cmd_forget(event, room_id):
+            yield result
+
+    @admin_room_group.command("upgrade")
+    @filter.permission_type(PermissionType.ADMIN)
+    async def admin_upgrade(
+        self, event: AstrMessageEvent, new_version: str, room_id: str = ""
+    ):
+        """升级房间版本"""
+        async for result in self.cmd_upgrade(event, new_version, room_id):
+            yield result
+
+    @admin_room_group.command("list")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_rooms(self, event: AstrMessageEvent):
         """列出 Bot 已加入的所有房间"""
         async for result in self.cmd_rooms(event):
             yield result
 
-    @admin_group.command("roominfo")
+    @admin_room_group.command("info")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_roominfo(self, event: AstrMessageEvent, room_id: str = ""):
         """查看房间详细信息"""
         async for result in self.cmd_room_info(event, room_id):
             yield result
 
-    @admin_group.command("banlist")
+    @admin_room_group.command("banlist")
     @filter.permission_type(PermissionType.ADMIN)
     async def admin_banlist(self, event: AstrMessageEvent, room_id: str = ""):
         """查看房间封禁列表"""
@@ -578,61 +573,59 @@ class Matrix_Admin_Plugin(
         """显示所有可用命令的帮助信息"""
         help_text = (
             "**Matrix Admin 管理命令帮助**\n\n"
-            "**用户管理：**\n"
-            "  `/admin kick <用户> [原因] [room_id]` - 踢出用户\n"
-            "  `/admin ban <用户> [原因] [room_id]` - 封禁用户\n"
-            "  `/admin unban <用户> [room_id]` - 解除封禁\n"
-            "  `/admin invite <用户> [room_id]` - 邀请用户\n"
-            "  `/admin whois <用户>` - 查询用户信息\n"
-            "  `/admin search <关键词> [数量]` - 搜索用户\n"
-            "  `/admin banlist [room_id]` - 查看封禁列表\n\n"
-            "**权限管理：**\n"
-            "  `/admin promote <用户> [级别] [room_id]` - 提升权限\n"
-            "  `/admin demote <用户> [room_id]` - 降低权限\n"
-            "  `/admin power <用户> <等级> [room_id]` - 设置权限等级\n"
-            "  `/admin admins [room_id]` - 列出管理员\n\n"
-            "**房间管理：**\n"
-            "  `/admin rooms` - 列出已加入的房间\n"
-            "  `/admin roominfo [room_id]` - 查看房间详情\n"
-            "  `/admin create room <名称> [是否公开]` - 创建房间\n"
-            "  `/admin create space <名称> [是否公开] [主题]` - 创建 Space\n"
+            "**用户管理 (user)：**\n"
+            "  `/admin user kick <用户> [原因] [room_id]` - 踢出用户\n"
+            "  `/admin user ban <用户> [原因] [room_id]` - 封禁用户\n"
+            "  `/admin user unban <用户> [room_id]` - 解除封禁\n"
+            "  `/admin user invite <用户> [room_id]` - 邀请用户\n"
+            "  `/admin user whois <用户>` - 查询用户信息\n"
+            "  `/admin user search <关键词> [数量]` - 搜索用户\n\n"
+            "**权限管理 (power)：**\n"
+            "  `/admin power promote <用户> [级别] [room_id]` - 提升权限\n"
+            "  `/admin power demote <用户> [room_id]` - 降低权限\n"
+            "  `/admin power power <用户> <等级> [room_id]` - 设置权限等级\n"
+            "  `/admin power admins [room_id]` - 列出管理员\n\n"
+            "**房间管理 (room)：**\n"
+            "  `/admin room create <名称> [是否公开]` - 创建房间\n"
+            "  `/admin room list` - 列出已加入的房间\n"
+            "  `/admin room info [room_id]` - 查看房间详情\n"
+            "  `/admin room banlist [room_id]` - 查看封禁列表\n"
             "  `/admin room name set <名称> [room_id]` - 设置房间名称\n"
             "  `/admin room topic set <主题> [room_id]` - 设置房间主题\n"
             "  `/admin room set name <名称>` - 修改 Bot 房间内名称\n"
             "  `/admin room set avatar [mxc://URL]` - 修改 Bot 房间内头像\n"
-            "  `/admin dm <用户>` - 创建私聊\n"
-            "  `/admin forget [room_id]` - 忘记房间\n"
-            "  `/admin knock <room_id> [原因]` - 请求加入\n"
+            "  `/admin room dm <用户>` - 创建私聊\n"
+            "  `/admin room forget [room_id]` - 忘记房间\n"
+            "  `/admin room knock <room_id> [原因]` - 请求加入\n"
+            "  `/admin room upgrade <版本> [room_id]` - 升级房间版本\n"
             "  `/admin room refresh [room_id|all]` - 刷新房间缓存（默认当前房间）\n\n"
             "**空间 (Space) 管理：**\n"
             "  `/admin space create <名称> [是否公开] [主题]` - 创建 Space\n"
             "  `/admin space link <space_id> <room_id> [推荐]` - 挂载子房间\n"
             "  `/admin space unlink <space_id> <room_id>` - 移除子房间\n"
             "  `/admin space children <space_id> [limit]` - 查看子房间\n"
-            "  `/admin hierarchy [room_id] [limit]` - 查看层级\n\n"
-            "**别名管理：**\n"
+            "  `/admin space hierarchy [room_id] [limit]` - 查看层级\n\n"
+            "**别名管理 (alias)：**\n"
             "  `/admin alias set <别名> [room_id]` - 设置别名\n"
             "  `/admin alias del <别名>` - 删除别名\n"
             "  `/admin alias get <别名>` - 解析别名\n"
             "  `/admin publicrooms [server] [limit]` - 公共房间列表\n\n"
-            "**Bot 管理：**\n"
+            "**Bot 管理 (set)：**\n"
             "  `/admin set name <名称>` - 修改显示名称\n"
             "  `/admin set avatar [mxc://URL]` - 修改头像（URL 或引用图片）\n"
             "  `/admin set status <状态> [消息]` - 修改在线状态\n"
             "  `/admin set statusmsg [消息]` - 设置状态消息\n"
             "  `/admin purge self [@用户] [room_id]` - 清理历史消息直到对话开头\n\n"
-            "**屏蔽管理：**\n"
-            "  `/admin ignore <用户>` - 屏蔽用户\n"
-            "  `/admin unignore <用户>` - 取消屏蔽\n"
-            "  `/admin ignorelist` - 查看屏蔽列表\n\n"
+            "**屏蔽管理 (ignore)：**\n"
+            "  `/admin ignore add <用户>` - 屏蔽用户\n"
+            "  `/admin ignore del <用户>` - 取消屏蔽\n"
+            "  `/admin ignore list` - 查看屏蔽列表\n\n"
             "**运行态命令：**\n"
             "  `/admin verify qr <用户ID> <设备ID> [二维码] [platform_id]` - 扫码验证\n"
+            "  `/admin verify sas <device_id>` - 手动确认 SAS 验证\n"
             "  `/admin matrix status [platform_id]` - 适配器运行状态\n"
             "  `/admin matrix reconnect [platform_id]` - 重连 /sync\n"
-            "  `/admin matrix resendpending [platform_id] [limit]` - 重试挂起消息\n"
-            "  `/admin verify sas <device_id>` - 手动确认 SAS 验证\n\n"
-            "**房间升级：**\n"
-            "  `/admin upgrade <版本> [room_id]` - 升级房间版本\n\n"
+            "  `/admin matrix resendpending [platform_id] [limit]` - 重试挂起消息\n\n"
             "提示：`[room_id]` 可选，默认使用当前房间。"
             "`[platform_id]` 可选，多适配器时指定。"
         )

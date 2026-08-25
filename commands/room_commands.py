@@ -217,11 +217,11 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """创建新房间
 
-        用法：/admin create room <房间名> [是否公开]
+        用法：/admin room create <房间名> [是否公开]
 
         示例：
-            /admin create room 新群组
-            /admin create room 公开频道 yes
+            /admin room create 新群组
+            /admin room create 公开频道 yes
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -244,10 +244,10 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_dm(self, event: AstrMessageEvent, user: str):
         """创建与用户的私聊房间
 
-        用法：/admin dm <用户 ID>
+        用法：/admin room dm <用户 ID>
 
         示例：
-            /admin dm @friend:example.com
+            /admin room dm @friend:example.com
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -388,7 +388,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_forget(self, event: AstrMessageEvent, room_id: str = ""):
         """忘记房间（需先离开）
 
-        用法：/admin forget [room_id]
+        用法：/admin room forget [room_id]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -411,7 +411,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """升级房间版本
 
-        用法：/admin upgrade <new_version> [room_id]
+        用法：/admin room upgrade <new_version> [room_id]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -437,7 +437,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """获取房间层级（Space）
 
-        用法：/admin hierarchy [room_id] [limit]
+        用法：/admin space hierarchy [room_id] [limit]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -470,7 +470,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     ):
         """敲门请求加入房间
 
-        用法：/admin knock <room_id_or_alias> [reason]
+        用法：/admin room knock <room_id_or_alias> [reason]
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -1008,7 +1008,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_rooms(self, event: AstrMessageEvent):
         """列出 Bot 已加入的所有房间
 
-        用法：/admin rooms
+        用法：/admin room list
         """
         client = self._get_matrix_client(event)
         ok, msg = self._validate_client(client)
@@ -1060,7 +1060,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_room_info(self, event: AstrMessageEvent, room_id: str = ""):
         """查看房间详细信息
 
-        用法：/admin roominfo [room_id]
+        用法：/admin room info [room_id]
         """
         client = self._get_matrix_client(event)
         ok, msg = self._validate_client(client)
@@ -1128,7 +1128,7 @@ class RoomCommandsMixin(AdminCommandMixin):
     async def cmd_banlist(self, event: AstrMessageEvent, room_id: str = ""):
         """查看房间封禁列表
 
-        用法：/admin banlist [room_id]
+        用法：/admin room banlist [room_id]
         """
         client = self._get_matrix_client(event)
         ok, msg = self._validate_client(client)

@@ -15,10 +15,10 @@ class QueryCommandsMixin(AdminCommandMixin):
     async def cmd_whois(self, event: AstrMessageEvent, user: str):
         """查询用户信息
 
-        用法：/admin whois <用户 ID>
+        用法：/admin user whois <用户 ID>
 
         示例：
-            /admin whois @user:example.com
+            /admin user whois @user:example.com
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -79,11 +79,11 @@ class QueryCommandsMixin(AdminCommandMixin):
     async def cmd_search(self, event: AstrMessageEvent, keyword: str, limit: int = 10):
         """搜索用户
 
-        用法：/admin search <关键词> [数量]
+        用法：/admin user search <关键词> [数量]
 
         示例：
-            /admin search alice
-            /admin search bob 5
+            /admin user search alice
+            /admin user search bob 5
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -115,7 +115,7 @@ class QueryCommandsMixin(AdminCommandMixin):
                     lines.append(f"{index}. {uid}")
                 lines.append("")
 
-            lines.append("可使用 /admin whois <user_id> 查询详情。")
+            lines.append("可使用 /admin user whois <user_id> 查询详情。")
             yield event.plain_result("\n".join(lines).rstrip())
 
         except Exception as e:

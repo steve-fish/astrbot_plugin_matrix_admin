@@ -15,10 +15,10 @@ class IgnoreCommandsMixin(AdminCommandMixin):
     async def cmd_ignore(self, event: AstrMessageEvent, user: str):
         """屏蔽用户
 
-        用法：/admin ignore <用户 ID>
+        用法：/admin ignore add <用户 ID>
 
         示例：
-            /admin ignore @annoying:example.com
+            /admin ignore add @annoying:example.com
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -40,10 +40,10 @@ class IgnoreCommandsMixin(AdminCommandMixin):
     async def cmd_unignore(self, event: AstrMessageEvent, user: str):
         """取消屏蔽用户
 
-        用法：/admin unignore <用户 ID>
+        用法：/admin ignore add del <用户 ID>
 
         示例：
-            /admin unignore @user:example.com
+            /admin ignore add del @user:example.com
         """
         client = self._get_matrix_client(event)
         if not client:
@@ -65,7 +65,7 @@ class IgnoreCommandsMixin(AdminCommandMixin):
     async def cmd_ignorelist(self, event: AstrMessageEvent):
         """查看屏蔽列表
 
-        用法：/admin ignorelist
+        用法：/admin ignore add list
         """
         client = self._get_matrix_client(event)
         if not client:

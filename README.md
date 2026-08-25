@@ -34,41 +34,42 @@ Matrix 管理插件，提供用户管理、权限控制、封禁踢出、设备�
 
 所有命令以 `/admin` 作为命令组前缀：
 
-- 用户管理：`kick`, `ban`, `unban`, `invite`, `promote`, `demote`, `power`
-- 信息查询：`admins`, `whois`, `search`
-- 忽略列表：`ignore`, `unignore`, `ignorelist`
-- 创建：`create room`, `create space`
-- 房间管理：`dm`, `alias set`, `alias del`, `alias get`, `publicrooms`, `forget`, `upgrade`, `hierarchy`, `knock`, `room refresh`
-- Space：`space create`, `space link`, `space unlink`, `space children`
-- Bot 管理：`set name`, `set avatar`, `set status`, `set statusmsg`, `purge self`
-- 房间资料：`room name set`, `room topic set`, `room set name`, `room set avatar`
-- 验证：`verify sas`, `verify qr`
-- 适配器运维：`matrix status`, `reconnect`, `resendpending`
+- 用户管理 (user)：`kick`, `ban`, `unban`, `invite`, `whois`, `search`
+- 权限管理 (power)：`promote`, `demote`, `power`, `admins`
+- 房间管理 (room)：`create`, `list`, `info`, `banlist`, `name set`, `topic set`, `set name`, `set avatar`, `dm`, `forget`, `knock`, `upgrade`, `refresh`
+- Space (space)：`create`, `link`, `unlink`, `children`, `hierarchy`
+- 别名 (alias)：`set`, `del`, `get`
+- Bot 资料 (set)：`name`, `avatar`, `status`, `statusmsg`
+- 消息清理 (purge)：`self`
+- 屏蔽 (ignore)：`add`, `del`, `list`
+- 验证 (verify)：`qr`, `sas`
+- 适配器运维 (matrix)：`status`, `reconnect`, `resendpending`
+- 其他：`publicrooms`, `help`
 
 ## 使用示例
 
 ```text
-/admin kick @user:example.org 违规
-/admin ban @user:example.org spam
-/admin unban @user:example.org
-/admin invite @user:example.org
-/admin promote @user:example.org mod
-/admin demote @user:example.org
-/admin power @user:example.org 50
-/admin admins
-/admin whois @user:example.org
-/admin search alice 10
-/admin ignore @user:example.org
-/admin ignorelist
-/admin create room "My Room" yes
-/admin create space "My Space" yes
-/admin dm @user:example.org
+/admin user kick @user:example.org 违规
+/admin user ban @user:example.org spam
+/admin user unban @user:example.org
+/admin user invite @user:example.org
+/admin user whois @user:example.org
+/admin user search alice 10
+/admin power promote @user:example.org mod
+/admin power demote @user:example.org
+/admin power power @user:example.org 50
+/admin power admins
+/admin ignore add @user:example.org
+/admin ignore list
+/admin room create "My Room" yes
+/admin room list
+/admin room info !roomid:example.org
 /admin alias set #myroom:example.org !roomid:example.org
 /admin alias get #myroom:example.org
 /admin publicrooms example.org 20
-/admin upgrade 10 !roomid:example.org
-/admin hierarchy !roomid:example.org 20
-/admin knock #room:example.org hi
+/admin room upgrade 10 !roomid:example.org
+/admin space hierarchy !roomid:example.org 20
+/admin room knock #room:example.org hi
 /admin set name AstrBot
 /admin set avatar mxc://matrix.org/AbCdEf
 /admin verify sas DEVICEID123

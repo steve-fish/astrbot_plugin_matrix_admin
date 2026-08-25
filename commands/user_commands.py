@@ -35,12 +35,12 @@ class UserCommandsMixin(AdminCommandMixin):
     ):
         """踢出用户
 
-        用法：/admin kick <用户 ID> [原因] [room_id]
+        用法：/admin user kick <用户 ID> [原因] [room_id]
 
         示例：
-            /admin kick @baduser:example.com
-            /admin kick @baduser:example.com 违规发言
-            /admin kick @baduser:example.com !roomid:example.com
+            /admin user kick @baduser:example.com
+            /admin user kick @baduser:example.com 违规发言
+            /admin user kick @baduser:example.com !roomid:example.com
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
@@ -80,12 +80,12 @@ class UserCommandsMixin(AdminCommandMixin):
     ):
         """封禁用户
 
-        用法：/admin ban <用户 ID> [原因] [room_id]
+        用法：/admin user ban <用户 ID> [原因] [room_id]
 
         示例：
-            /admin ban @spammer:example.com
-            /admin ban @spammer:example.com 垃圾广告
-            /admin ban @spammer:example.com !roomid:example.com
+            /admin user ban @spammer:example.com
+            /admin user ban @spammer:example.com 垃圾广告
+            /admin user ban @spammer:example.com !roomid:example.com
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
@@ -119,11 +119,11 @@ class UserCommandsMixin(AdminCommandMixin):
     async def cmd_unban(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """解除封禁
 
-        用法：/admin unban <用户 ID> [room_id]
+        用法：/admin user unban <用户 ID> [room_id]
 
         示例：
-            /admin unban @user:example.com
-            /admin unban @user:example.com !roomid:example.com
+            /admin user unban @user:example.com
+            /admin user unban @user:example.com !roomid:example.com
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
@@ -148,11 +148,11 @@ class UserCommandsMixin(AdminCommandMixin):
     async def cmd_invite(self, event: AstrMessageEvent, user: str, room_id: str = ""):
         """邀请用户加入房间
 
-        用法：/admin invite <用户 ID> [room_id]
+        用法：/admin user invite <用户 ID> [room_id]
 
         示例：
-            /admin invite @friend:example.com
-            /admin invite @friend:example.com !roomid:example.com
+            /admin user invite @friend:example.com
+            /admin user invite @friend:example.com !roomid:example.com
         """
         client, target_room_id, error = await self._require_client_and_room(
             event, room_id
